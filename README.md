@@ -5,7 +5,7 @@ Task Management Project
 
 デスクトップのブラウザで使う、Trello風のタスク管理Webアプリ(演習)です。
 
-詳細な要件は [docs/requirements.md](docs/requirements.md) を参照してください。
+詳細な要件は [docs/requirements.md](docs/requirements.md)(要件定義書)、前提となる依頼者ニーズは [docs/needs-analysis.md](docs/needs-analysis.md)(要求分析書)を参照してください。
 
 ### 機能
 - リスト(列)の作成・リネーム・削除
