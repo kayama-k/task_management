@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Task Board プロトタイプ</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    color: #172b4d;
+  }
+  .note {
+    padding: 10px 20px;
+    background: #172b4d;
+    color: #b6c2cf;
+    font-size: 12px;
+  }
+  .note strong { color: #fff; }
+
+  .app {
+    min-height: 100vh;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: background 0.15s ease;
+  }
+  .app-header {
+    padding: 12px 20px;
+    background: rgba(0,0,0,0.15);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .app-header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+  .bg-picker { display: flex; align-items: center; gap: 8px; }
+  .bg-picker-label { font-size: 12px; color: rgba(255,255,255,0.85); }
+  .bg-swatches { display: flex; gap: 6px; }
+  .bg-swatch {
+    width: 20px; height: 20px; border-radius: 4px;
+    border: 2px solid rgba(255,255,255,0.5); cursor: pointer; padding: 0;
+  }
+  .bg-swatch.active { border-color: #fff; box-shadow: 0 0 0 2px rgba(0,0,0,0.3); }
+  .bg-image-btn, .icon-btn, .add-card-trigger, .add-list-trigger, .text-btn {
+    font-family: inherit;
+  }
+  .bg-image-btn {
+    background: rgba(255,255,255,0.2); color: #fff;
+    border: 1px solid rgba(255,255,255,0.4); border-radius: 4px;
+    padding: 4px 8px; font-size: 12px; cursor: pointer; white-space: nowrap;
+  }
+  .bg-image-btn:hover { background: rgba(255,255,255,0.32); }
+
+  .board {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 20px;
+    overflow-x: auto;
+  }
+  .list {
+    background: #ebecf0;
+    border-radius: 10px;
+    width: 272px;
+    min-width: 272px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+  }
+  .list-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 8px; }
+  .list-title {
+    margin: 0; font-size: 14px; font-weight: 600; cursor: text; flex: 1;
+    padding: 4px; border-radius: 4px; border: none; background: none; font-family: inherit;
+  }
+  .list-title:hover { background: rgba(0,0,0,0.06); }
+  .list-title:focus { background: #fff; outline: 2px solid #0079bf; }
+  .icon-btn { background: none; border: none; cursor: pointer; font-size: 14px; opacity: 0.6; padding: 4px 6px; border-radius: 4px; }
+  .icon-btn:hover { opacity: 1; background: rgba(0,0,0,0.08); }
+
+  .card-list { display: flex; flex-direction: column; gap: 6px; padding: 2px; min-height: 24px; }
+  .card-list.drag-over { background: rgba(9,30,66,0.08); border-radius: 6px; }
+  .card {
+    background: #fff; border-radius: 6px; padding: 8px 10px;
+    box-shadow: 0 1px 0 rgba(9,30,66,0.25); font-size: 14px; cursor: pointer;
+  }
+  .card:hover { background: #f4f5f7; }
+  .card.dragging { opacity: 0.4; }
+  .card-due {
+    margin-top: 6px; display: inline-block; font-size: 12px;
+    padding: 2px 6px; border-radius: 4px; background: #dfe1e6; color: #172b4d;
+  }
+  .card-due--soon { background: #ffe0b2; color: #94500a; }
+  .card-due--overdue { background: #ffd5d2; color: #ae2e24; }
+  .card-description { margin-top: 4px; font-size: 12px; color: #5e6c84; }
+
+  .add-card-trigger, .add-list-trigger {
+    background: none; border: none; text-align: left; padding: 8px 6px;
+    border-radius: 6px; cursor: pointer; color: #172b4d; font-size: 14px;
+  }
+  .add-card-trigger:hover { background: rgba(0,0,0,0.08); }
+  .add-list-trigger { color: #fff; background: rgba(255,255,255,0.24); width: 272px; min-width: 272px; }
+  .add-list-trigger:hover { background: rgba(255,255,255,0.32); }
+
+  .add-card-form, .add-list-form { display: flex; flex-direction: column; gap: 6px; padding: 4px; }
+  .add-card-form textarea, .add-list-form input, .add-card-form input[type="datetime-local"] {
+    border: 2px solid #0079bf; border-radius: 6px; padding: 6px 8px; font-size: 14px; font-family: inherit; resize: vertical;
+  }
+  .due-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+  .form-actions { display: flex; gap: 8px; align-items: center; }
+  .primary-btn, .danger-btn {
+    border: none; border-radius: 6px; padding: 6px 12px; font-size: 14px; cursor: pointer; color: #fff;
+  }
+  .primary-btn { background: #0079bf; }
+  .primary-btn:hover { background: #026aa7; }
+  .danger-btn { background: #eb5a46; }
+  .danger-btn:hover { background: #cf4c3b; }
+  .text-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #172b4d; padding: 0 6px; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(9,30,66,0.54);
+    display: flex; align-items: flex-start; justify-content: center; padding: 60px 16px; z-index: 10;
+  }
+  .modal {
+    background: #fff; border-radius: 8px; width: 100%; max-width: 480px;
+    padding: 24px; position: relative; display: flex; flex-direction: column; gap: 10px;
+  }
+  .modal-close { position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 18px; cursor: pointer; color: #5e6c84; }
+  .field-label { font-size: 12px; font-weight: 600; color: #5e6c84; margin-top: 6px; }
+  .modal-title-input {
+    font-size: 16px; font-weight: 600; padding: 8px; border: 2px solid transparent;
+    border-radius: 6px; background: #f4f5f7; font-family: inherit;
+  }
+  .modal-title-input:focus { border-color: #0079bf; outline: none; background: #fff; }
+  .modal-description-input {
+    font-size: 14px; padding: 8px; border: 1px solid #dfe1e6; border-radius: 6px; font-family: inherit; resize: vertical;
+  }
+  .modal input[type="datetime-local"] {
+    padding: 6px 8px; border: 1px solid #dfe1e6; border-radius: 6px; font-size: 14px; width: fit-content;
+  }
+  .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+  @media (max-width: 768px) {
+    .board { flex-direction: column; align-items: stretch; }
+    .list, .add-list-trigger { width: 100%; min-width: 0; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="note"><strong>プロトタイプ</strong> — 要件定義書の挙動を確認するための試作品です。データはこのブラウザの localStorage に保存され、サーバーには送信されません。</div>
+
+  <div class="app" id="app">
+    <div class="app-header">
+      <h1>Task Board</h1>
+      <div class="bg-picker">
+        <span class="bg-picker-label">背景</span>
+        <div class="bg-swatches" id="bg-swatches"></div>
+        <button class="bg-image-btn" id="bg-image-btn">🖼 画像を選択</button>
+        <input type="file" id="bg-file-input" accept="image/*" style="display:none" />
+      </div>
+    </div>
+    <div class="board" id="board"></div>
+  </div>
+
+  <div id="modal-root"></div>
+
+<script>
+const STORAGE_KEY = 'taskboard-mockup-state-v2';
+const PRESETS = [
+  { name: 'ブルー', value: '#0079bf' },
+  { name: 'オレンジ', value: '#d29034' },
+  { name: 'グリーン', value: '#519839' },
+  { name: 'レッド', value: '#b04632' },
+  { name: 'パープル', value: '#89609e' },
+  { name: 'スカイ', value: '#00aecc' },
+  { name: 'グレー', value: '#838c91' },
+  { name: 'ホワイト', value: '#f4f5f7' },
+];
+
+function defaultState() {
+  return {
+    nextListId: 4,
+    nextCardId: 4,
+    lists: [
+      { id: 1, title: '未着手', cards: [
+        { id: 1, title: '朝ごはんを食べる', description: '', dueAt: '2026-10-01T09:00' },
+        { id: 2, title: 'タクシー移動', description: '空港まで移動する', dueAt: relativeDue(20) },
+      ]},
+      { id: 2, title: '実行中', cards: [
+        { id: 3, title: 'レポート作成', description: '見積書のたたき台を用意する', dueAt: null },
+      ]},
+      { id: 3, title: '完了', cards: [] },
+    ],
+    background: { type: 'color', value: '#0079bf' },
+  };
+}
+// A due date 20h from "now" at load time, so the "soon" (orange) badge has a live example.
+function relativeDue(hoursFromNow) {
+  const d = new Date(Date.now() + hoursFromNow * 3600 * 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.lists)) return parsed;
+    return defaultState();
+  } catch {
+    return defaultState();
+  }
+}
+let state = load();
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function findList(listId) {
+  return state.lists.find((l) => l.id === listId);
+}
+function findCard(cardId) {
+  for (const list of state.lists) {
+    const card = list.cards.find((c) => c.id === cardId);
+    if (card) return { list, card };
+  }
+  return null;
+}
+
+// ---- Due date badge status (mirrors the real app's Card.jsx logic) ----
+function describeDue(dueAt) {
+  if (!dueAt) return null;
+  const due = new Date(dueAt);
+  if (isNaN(due.getTime())) return null;
+  const now = new Date();
+  const diff = due.getTime() - now.getTime();
+  const oneDay = 24 * 60 * 60 * 1000;
+  let status = 'upcoming';
+  if (diff < 0) status = 'overdue';
+  else if (diff <= oneDay) status = 'soon';
+  const label = due.toLocaleString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return { status, label };
+}
+
+// ---- List operations ----
+function addList(title) {
+  const t = title.trim();
+  if (!t) return;
+  state.lists.push({ id: state.nextListId++, title: t, cards: [] });
+  save(); render();
+}
+function renameList(listId, title) {
+  const t = title.trim();
+  const list = findList(listId);
+  if (!list || !t) return;
+  list.title = t;
+  save(); render();
+}
+function deleteList(listId) {
+  const list = findList(listId);
+  if (!list) return;
+  if (list.cards.length > 0) {
+    const ok = confirm(`「${list.title}」には${list.cards.length}件のカードがあります。リストごと削除しますか?`);
+    if (!ok) return;
+  }
+  state.lists = state.lists.filter((l) => l.id !== listId);
+  save(); render();
+}
+
+// ---- Card operations ----
+function addCard(listId, { title, description, dueAt }) {
+  const list = findList(listId);
+  const t = title.trim();
+  if (!list || !t) return;
+  list.cards.push({ id: state.nextCardId++, title: t, description: (description || '').trim(), dueAt: dueAt || null });
+  save(); render();
+}
+function updateCard(cardId, patch) {
+  const found = findCard(cardId);
+  if (!found) return;
+  Object.assign(found.card, patch);
+  save(); render();
+}
+function deleteCard(cardId) {
+  const found = findCard(cardId);
+  if (!found) return;
+  found.list.cards = found.list.cards.filter((c) => c.id !== cardId);
+  save(); closeModal(); render();
+}
+function moveCard(cardId, targetListId, targetIndex) {
+  const found = findCard(cardId);
+  const targetList = findList(targetListId);
+  if (!found || !targetList) return;
+  found.list.cards = found.list.cards.filter((c) => c.id !== cardId);
+  let idx = Math.max(0, Math.min(targetIndex, targetList.cards.length));
+  targetList.cards.splice(idx, 0, found.card);
+  save(); render();
+}
+
+// ---- Background ----
+function setBackgroundColor(value) {
+  state.background = { type: 'color', value };
+  save(); applyBackground(); renderSwatches();
+}
+function setBackgroundImage(dataUrl) {
+  state.background = { type: 'image', value: dataUrl };
+  save(); applyBackground(); renderSwatches();
+}
+function applyBackground() {
+  const app = document.getElementById('app');
+  // Clear everything first: setting the `background` shorthand after
+  // `backgroundImage` would wipe out the image just set (the shorthand
+  // resets all of its longhands, including ones set moments earlier).
+  app.style.background = '';
+  app.style.backgroundImage = '';
+  if (state.background.type === 'image') {
+    app.style.backgroundImage = `url(${state.background.value})`;
+    app.style.backgroundSize = 'cover';
+    app.style.backgroundPosition = 'center';
+    app.style.backgroundRepeat = 'no-repeat';
+  } else {
+    app.style.background = state.background.value;
+  }
+}
+function resizeImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
+      img.onload = () => {
+        const max = 1920;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---- Rendering ----
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') node.className = v;
+    else if (k === 'text') node.textContent = v;
+    else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  }
+  for (const c of [].concat(children)) if (c) node.appendChild(c);
+  return node;
+}
+
+function renderSwatches() {
+  const wrap = document.getElementById('bg-swatches');
+  wrap.innerHTML = '';
+  PRESETS.forEach((p) => {
+    const active = state.background.type === 'color' && state.background.value === p.value;
+    wrap.appendChild(el('button', {
+      class: 'bg-swatch' + (active ? ' active' : ''),
+      style: `background:${p.value}`,
+      title: p.name,
+      onclick: () => setBackgroundColor(p.value),
+    }));
+  });
+}
+
+// ---- Drag & drop: move the real card element live as you drag, Trello-style,
+// instead of waiting until drop to compute and apply the new order. ----
+
+// Which element is currently being dragged. Tracked in a plain variable
+// (set synchronously in dragstart) rather than read back from the CSS
+// `.dragging` class, because that class is intentionally added a tick
+// late (see dragstart below) — a dragover firing before that tick would
+// otherwise see no dragging element yet and silently do nothing, which
+// showed up as "moving to another list doesn't work".
+let draggedCardEl = null;
+
+// Which card element (other than the one being dragged) the pointer is
+// currently closest to being ABOVE, so the dragged card can be inserted
+// just before it. Returns null when the pointer is below every card
+// (i.e. it belongs at the end of the list).
+function getDragAfterElement(container, y) {
+  const cardEls = [...container.querySelectorAll('.card')].filter((c) => c !== draggedCardEl);
+  return cardEls.reduce((closest, cardEl) => {
+    const box = cardEl.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset, element: cardEl };
+    }
+    return closest;
+  }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+}
+
+// After a drag ends, the DOM (not `state`) holds the truth about where
+// every card now lives. Read it back into `state` and persist.
+function finalizeDragFromDOM() {
+  // Snapshot every card by id BEFORE any list's `cards` array is
+  // reassigned below. Looking cards up against `state` while we're
+  // partway through rebuilding it would miss any card that already
+  // moved out of an earlier-processed list (it wouldn't be in that
+  // list's array anymore, but wouldn't be in its new list's array yet
+  // either) — that's how a cross-list move used to silently lose the
+  // dragged card.
+  const allCardsById = new Map();
+  state.lists.forEach((l) => l.cards.forEach((c) => allCardsById.set(c.id, c)));
+
+  document.querySelectorAll('.list').forEach((listEl) => {
+    const list = findList(Number(listEl.getAttribute('data-list-id')));
+    if (!list) return;
+    const cardEls = listEl.querySelectorAll('.card-list > .card');
+    list.cards = [...cardEls]
+      .map((ce) => allCardsById.get(Number(ce.getAttribute('data-card-id'))))
+      .filter(Boolean);
+  });
+  save();
+  render();
+}
+
+function renderCard(card, list) {
+  const due = describeDue(card.dueAt);
+  const card_el = el('div', {
+    class: 'card',
+    draggable: 'true',
+    'data-card-id': String(card.id),
+    onclick: () => openCardModal(card.id),
+  });
+  card_el.appendChild(el('div', { text: card.title }));
+  if (card.description) card_el.appendChild(el('div', { class: 'card-description', text: card.description }));
+  if (due) card_el.appendChild(el('div', { class: `card-due card-due--${due.status}`, text: `🕒 ${due.label}` }));
+
+  card_el.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('text/plain', String(card.id));
+    e.dataTransfer.effectAllowed = 'move';
+    draggedCardEl = card_el; // tracked synchronously — see the comment above getDragAfterElement
+    // Delay the opacity-only styling so the browser's drag-image snapshot
+    // (taken synchronously on dragstart) still shows the card at full
+    // opacity, instead of a doubly-faded ghost.
+    setTimeout(() => card_el.classList.add('dragging'), 0);
+  });
+  card_el.addEventListener('dragend', () => {
+    card_el.classList.remove('dragging');
+    draggedCardEl = null;
+    finalizeDragFromDOM();
+  });
+  return card_el;
+}
+
+function renderList(list) {
+  const listEl = el('div', { class: 'list', 'data-list-id': String(list.id) });
+  const header = el('div', { class: 'list-header' });
+  const titleInput = el('input', { class: 'list-title', value: list.title });
+  titleInput.addEventListener('change', () => renameList(list.id, titleInput.value));
+  titleInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') titleInput.blur(); });
+  header.appendChild(titleInput);
+  header.appendChild(el('button', { class: 'icon-btn', title: 'リストを削除', text: '🗑', onclick: () => deleteList(list.id) }));
+  listEl.appendChild(header);
+
+  const cardList = el('div', { class: 'card-list' });
+  list.cards.forEach((card) => cardList.appendChild(renderCard(card, list)));
+
+  cardList.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (!draggedCardEl) return;
+    // Move the actual dragged element into place immediately, on every
+    // pointer move — this is what makes the reorder feel live instead of
+    // only resolving on drop.
+    const afterElement = getDragAfterElement(cardList, e.clientY);
+    if (afterElement == null) {
+      cardList.appendChild(draggedCardEl);
+    } else if (afterElement !== draggedCardEl) {
+      cardList.insertBefore(draggedCardEl, afterElement);
+    }
+  });
+  cardList.addEventListener('drop', (e) => e.preventDefault());
+
+  listEl.appendChild(cardList);
+  listEl.appendChild(renderAddCardTrigger(list.id));
+  return listEl;
+}
+
+function renderAddCardTrigger(listId) {
+  const container = el('div');
+  function showForm() {
+    container.innerHTML = '';
+    const form = el('div', { class: 'add-card-form' });
+    const titleInput = el('textarea', { rows: '2', placeholder: 'カードのタイトルを入力' });
+    const dueToggle = el('label', { class: 'due-toggle' });
+    const dueCheckbox = el('input', { type: 'checkbox' });
+    dueToggle.appendChild(dueCheckbox);
+    dueToggle.appendChild(document.createTextNode('予定日時を設定する'));
+    const dueInput = el('input', { type: 'datetime-local', style: 'display:none' });
+    dueCheckbox.addEventListener('change', () => { dueInput.style.display = dueCheckbox.checked ? '' : 'none'; });
+
+    const actions = el('div', { class: 'form-actions' });
+    const addBtn = el('button', { class: 'primary-btn', text: '追加' });
+    addBtn.addEventListener('click', () => {
+      addCard(listId, { title: titleInput.value, dueAt: dueCheckbox.checked ? dueInput.value : null });
+    });
+    const cancelBtn = el('button', { class: 'text-btn', text: '✕' });
+    cancelBtn.addEventListener('click', () => showTrigger());
+    actions.appendChild(addBtn); actions.appendChild(cancelBtn);
+
+    form.appendChild(titleInput);
+    form.appendChild(dueToggle);
+    form.appendChild(dueInput);
+    form.appendChild(actions);
+    container.appendChild(form);
+    titleInput.focus();
+  }
+  function showTrigger() {
+    container.innerHTML = '';
+    container.appendChild(el('button', { class: 'add-card-trigger', text: '+ カードを追加', onclick: showForm }));
+  }
+  showTrigger();
+  return container;
+}
+
+function renderAddListTrigger() {
+  const container = el('div');
+  function showForm() {
+    container.innerHTML = '';
+    const form = el('div', { class: 'add-list-form' });
+    const input = el('input', { placeholder: 'リスト名を入力', style: 'width:272px' });
+    const actions = el('div', { class: 'form-actions' });
+    const addBtn = el('button', { class: 'primary-btn', text: '追加' });
+    addBtn.addEventListener('click', () => { addList(input.value); showTrigger(); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addBtn.click(); });
+    const cancelBtn = el('button', { class: 'text-btn', text: '✕' });
+    cancelBtn.addEventListener('click', showTrigger);
+    actions.appendChild(addBtn); actions.appendChild(cancelBtn);
+    form.appendChild(input); form.appendChild(actions);
+    container.appendChild(form);
+    input.focus();
+  }
+  function showTrigger() {
+    container.innerHTML = '';
+    container.appendChild(el('button', { class: 'add-list-trigger', text: '+ リストを追加', onclick: showForm }));
+  }
+  showTrigger();
+  return container;
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  state.lists.forEach((list) => board.appendChild(renderList(list)));
+  board.appendChild(renderAddListTrigger());
+}
+
+function render() {
+  renderBoard();
+  renderSwatches();
+  applyBackground();
+}
+
+// ---- Card edit modal ----
+function closeModal() {
+  document.getElementById('modal-root').innerHTML = '';
+}
+function openCardModal(cardId) {
+  const found = findCard(cardId);
+  if (!found) return;
+  const { card } = found;
+  const root = document.getElementById('modal-root');
+  root.innerHTML = '';
+
+  const backdrop = el('div', { class: 'modal-backdrop', onclick: (e) => { if (e.target === backdrop) closeModal(); } });
+  const modal = el('div', { class: 'modal' });
+
+  modal.appendChild(el('button', { class: 'modal-close', text: '✕', onclick: closeModal }));
+  modal.appendChild(el('label', { class: 'field-label', text: 'タイトル' }));
+  const titleInput = el('input', { class: 'modal-title-input', value: card.title });
+  modal.appendChild(titleInput);
+
+  modal.appendChild(el('label', { class: 'field-label', text: '説明' }));
+  const descInput = el('textarea', { class: 'modal-description-input', rows: '4', placeholder: '詳細を入力(任意)' });
+  descInput.value = card.description || '';
+  modal.appendChild(descInput);
+
+  const dueToggle = el('label', { class: 'due-toggle' });
+  const dueCheckbox = el('input', { type: 'checkbox' });
+  dueCheckbox.checked = Boolean(card.dueAt);
+  dueToggle.appendChild(dueCheckbox);
+  dueToggle.appendChild(document.createTextNode('予定日時を設定する'));
+  modal.appendChild(dueToggle);
+  const dueInput = el('input', { type: 'datetime-local' });
+  dueInput.value = card.dueAt || '';
+  dueInput.style.display = dueCheckbox.checked ? '' : 'none';
+  dueCheckbox.addEventListener('change', () => { dueInput.style.display = dueCheckbox.checked ? '' : 'none'; });
+  modal.appendChild(dueInput);
+
+  const actions = el('div', { class: 'modal-actions' });
+  const saveBtn = el('button', { class: 'primary-btn', text: '保存' });
+  saveBtn.addEventListener('click', () => {
+    updateCard(card.id, {
+      title: titleInput.value.trim() || card.title,
+      description: descInput.value.trim(),
+      dueAt: dueCheckbox.checked ? dueInput.value : null,
+    });
+    closeModal();
+  });
+  const delBtn = el('button', { class: 'danger-btn', text: '削除' });
+  delBtn.addEventListener('click', () => {
+    if (confirm('このカードを削除しますか?')) deleteCard(card.id);
+  });
+  actions.appendChild(saveBtn); actions.appendChild(delBtn);
+  modal.appendChild(actions);
+
+  backdrop.appendChild(modal);
+  root.appendChild(backdrop);
+  titleInput.focus();
+}
+
+// ---- Background image picker wiring ----
+document.getElementById('bg-image-btn').addEventListener('click', () => {
+  document.getElementById('bg-file-input').click();
+});
+document.getElementById('bg-file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const dataUrl = await resizeImageFile(file);
+    setBackgroundImage(dataUrl);
+  } catch (err) {
+    alert(err.message || '画像の設定に失敗しました');
+  }
+});
+
+render();
+</script>
+</body>
+</html>
