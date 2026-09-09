@@ -222,7 +222,7 @@ cards
 
 ## 9. バックエンド仕様(APIとその動作)
 
-> **注記**: 本章は目標とする仕様であり、現在の実装(`backend/`、Spring Boot)ではまだ `GET /api/health` のみが動作する(9.1参照)。`/api/lists` `/api/cards` 系は未実装。本文の記述(SQLiteのトランザクション処理など)は旧Node.js版での実装内容に基づくもので、Java版への移植時に改めて設計する。
+> **注記**: 本章は目標とする仕様であり、現在の実装(`backend/`、Spring Boot)ではまだ `GET /api/health` のみが動作する(9.1参照)。`/api/lists` `/api/cards` 系は未実装。本文の記述(SQLiteのトランザクション処理など)は旧Node.js版での実装内容に基づくもので、Java版への移植時に改めて設計する。なお `GET /actuator/health` は、DB(PostgreSQL)が未接続であることを `database` コンポーネント `DOWN`(HTTP 503)として正直に報告する。
 
 フロントエンドはすべてのデータ操作をバックエンドのREST APIを介して行う。バックエンドはリクエストを受け取るとSQLiteに対して読み書きを行い、結果をJSONで返す。バリデーションエラーやリソース未検出などの異常系も、例外を投げっぱなしにせずJSON形式のエラーレスポンスとして返す。
 
@@ -258,7 +258,7 @@ cards
 
 ## 10. 技術構成(技術選定)
 
-> **注記**: 以下は今後移行予定の技術スタックである。バックエンドは `backend/` をSpring Boot版に一本化済み(旧Node.js版は削除)だが、まだ最小構成(ひな形、ヘルスチェックのみ)の段階で、DBもH2(暫定)を使用しておりPostgreSQLへの切り替えは未対応。フロントエンド(`frontend/`)はまだ移行前(JavaScript、素のCSS)のまま。詳細は12.検討・変更の経緯を参照。
+> **注記**: 以下は今後移行予定の技術スタックである。バックエンドは `backend/` をSpring Boot版に一本化済み(旧Node.js版は削除)だが、まだ最小構成(ひな形、ヘルスチェックのみ)の段階。DB(PostgreSQL)は未接続で、`/actuator/health` はそれを正直に`DOWN`として報告する(H2による仮の「正常」表示はやめた)。フロントエンド(`frontend/`)はまだ移行前(JavaScript、素のCSS)のまま。詳細は12.検討・変更の経緯を参照。
 
 ### 10.1 フロントエンド
 
@@ -334,3 +334,4 @@ cards
 19. 技術スタックを大幅に変更する方針を決定。フロントエンドはJavaScript→TypeScript・素のCSS→Tailwind CSSに、バックエンドはNode.js/Express→Java/Spring Boot(Gradle)に、データベースはSQLite→PostgreSQLに移行する。まずは要件定義書(10.技術構成)の記載を新方針に更新し、実装(`backend/`, `frontend/`)自体の移行は別途行う。
 20. バックエンド移行の第一歩として、Spring Bootの最小構成(ひな形)を `backend-java/` に新規作成した。JDK 25(LTS)をwingetで導入し、Spring Initializr経由でGradleプロジェクト(Spring Boot 4.1.1、Java toolchain 25)を生成。依存関係は Web・Spring Data JPA・H2・Actuator。DBは本来の目標であるPostgreSQLの代わりに、当面H2(インメモリ)を使用(PostgreSQL/Dockerが未インストールのため)。`GET /api/health`(既存Node版と同じ契約)と、DB接続状況を含む `GET /actuator/health` の両方が正常に動作することを確認済み。既存のNode版 `backend/` はまだ置き換えておらず、当面併存する。
 21. 「正規版アプリのデプロイはまだ先であり、旧Node版は削除して問題ない」との判断により、旧Node.js版バックエンド(`backend/`)を完全に削除し、`backend-java/` を `backend/` にリネームして正式なバックエンドディレクトリとした(Git履歴には旧実装が残る)。`docs/mockup.html`(プロトタイプ)はバックエンドを呼び出さない独立ファイルのため無影響。副作用として、Java版はまだヘルスチェックのみのため、`frontend/` から `backend/` への実際のAPI呼び出し(リスト/カードのCRUD等)は本項時点では動作しない。
+22. 「この段階でDBの代替(H2)は不要。むしろ未整備であることが正しく分かるよう、あえて異常ステータスにしてほしい」との方針を受け、H2・Spring Data JPAへの依存を撤去した。代わりに自作の `DatabaseHealthIndicator`(`org.springframework.boot.health.contributor.HealthIndicator` を実装。Spring Boot 4系ではヘルス関連APIが `spring-boot-actuator` から `spring-boot-health` モジュール・`org.springframework.boot.health.contributor` パッケージへ移動している点に注意)を追加し、DB未接続を `database: DOWN` として正直に報告するようにした。`GET /actuator/health` は総合ステータス `DOWN`(HTTP 503)を返す。`GET /api/health`(アプリ自体の起動確認)は引き続き `{"status":"ok"}` のまま。

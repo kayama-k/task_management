@@ -21,7 +21,7 @@ Task Management Project
 |---|---|---|
 | フロントエンド | React + Vite、ドラッグ&ドロップは [@dnd-kit](https://dndkit.com/) | 稼働中(JavaScript。TypeScript+Tailwind CSSへの移行は未着手) |
 | バックエンド | Java + Spring Boot + Gradle | ひな形段階(ヘルスチェックのみ) |
-| DB | H2(インメモリ) | 暫定。将来PostgreSQLへ切り替え予定 |
+| DB | 未接続(PostgreSQL予定) | 未着手。`/actuator/health` は正直に `DOWN` を返す |
 
 ### セットアップと起動
 
@@ -31,8 +31,8 @@ cd task_management/backend
 ./gradlew.bat bootRun   # Windows。macOS/Linuxは ./gradlew bootRun
 ```
 起動後、以下で動作確認できます(ポート8080)。
-- `GET http://localhost:8080/api/health` → `{"status":"ok"}`
-- `GET http://localhost:8080/actuator/health` → H2への接続状況を含む詳細なヘルス情報
+- `GET http://localhost:8080/api/health` → `{"status":"ok"}`(アプリ自体の起動確認)
+- `GET http://localhost:8080/actuator/health` → `{"status":"DOWN", ...}`(HTTP 503)。DB(PostgreSQL)がまだ未接続であることを `database` コンポーネントが正直に示す
 
 **フロントエンド**(必要環境: Node.js。動作確認はNode 24系)
 ```bash
@@ -45,7 +45,7 @@ npm run dev
 **プロトタイプ**(バックエンド不要ですぐ試せる版): [docs/mockup.html](docs/mockup.html) をブラウザで直接開いてください。データはブラウザの `localStorage` に保存されます。
 
 ### データの保存先
-- タスクデータ: バックエンドのH2インメモリDB(アプリ終了時に消える。将来PostgreSQLへ移行予定)
+- タスクデータ: 未着手。データベース(PostgreSQL予定)自体が未接続のため、現時点では何も保存されません
 - 背景設定(色・画像): ブラウザのローカルストレージ(サーバー側DBには保存されません)
 - プロトタイプ(`docs/mockup.html`)のデータ: ブラウザの `localStorage`(上記アプリ本体とは別管理)
 
@@ -61,7 +61,8 @@ task_management/
 │   ├── gradlew / gradlew.bat
 │   └── src/main/java/com/taskmanagement/backend/
 │       ├── BackendApplication.java
-│       └── HealthController.java
+│       ├── HealthController.java
+│       └── DatabaseHealthIndicator.java  # DB未接続を正直にDOWN表示
 └── frontend/            # React (Vite) アプリ
     └── src/
         ├── App.jsx       # 状態管理・ドラッグ&ドロップ制御
