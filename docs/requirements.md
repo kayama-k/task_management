@@ -256,7 +256,7 @@ cards
 
 ## 10. 技術構成(技術選定)
 
-> **注記**: 以下は今後移行予定の技術スタックであり、現時点の実装(`backend/`, `frontend/`)はまだ移行前(Node.js + Express + SQLite、JavaScript、素のCSS)のままである。移行作業は別途行う(11.検討・変更の経緯を参照)。
+> **注記**: 以下は今後移行予定の技術スタックである。バックエンドは `backend-java/` に最小構成(ひな形)を作成済み(現時点はDBにH2を使用、PostgreSQLへの切り替えは未対応)。フロントエンド(`frontend/`)はまだ移行前(JavaScript、素のCSS)のまま。詳細は12.検討・変更の経緯を参照。
 
 ### 10.1 フロントエンド
 
@@ -330,3 +330,4 @@ cards
 17. 初期リスト名を `To Do` / `In Progress` / `Done`(英語表記)から `未着手` / `実行中` / `完了`(日本語表記)に変更した。対象は要件定義書・要求分析書の記載、およびプロトタイプ(`docs/mockup.html`)の初期データ。バックエンドの実装(`backend/db.js`)や稼働中アプリのDBデータは対象外とした。
 18. プロトタイプ(`docs/mockup.html`)のカード並び替えUXを改善。ドロップ時に一括計算していた方式から、ドラッグ中にカードをリアルタイムで動かす方式に変更。あわせて、修正過程で見つかった別リスト移動時の不具合(ドラッグ対象の判定タイミング・状態再構築時の参照ロスト)も修正した。
 19. 技術スタックを大幅に変更する方針を決定。フロントエンドはJavaScript→TypeScript・素のCSS→Tailwind CSSに、バックエンドはNode.js/Express→Java/Spring Boot(Gradle)に、データベースはSQLite→PostgreSQLに移行する。まずは要件定義書(10.技術構成)の記載を新方針に更新し、実装(`backend/`, `frontend/`)自体の移行は別途行う。
+20. バックエンド移行の第一歩として、Spring Bootの最小構成(ひな形)を `backend-java/` に新規作成した。JDK 25(LTS)をwingetで導入し、Spring Initializr経由でGradleプロジェクト(Spring Boot 4.1.1、Java toolchain 25)を生成。依存関係は Web・Spring Data JPA・H2・Actuator。DBは本来の目標であるPostgreSQLの代わりに、当面H2(インメモリ)を使用(PostgreSQL/Dockerが未インストールのため)。`GET /api/health`(既存Node版と同じ契約)と、DB接続状況を含む `GET /actuator/health` の両方が正常に動作することを確認済み。既存のNode版 `backend/` はまだ置き換えておらず、当面併存する。

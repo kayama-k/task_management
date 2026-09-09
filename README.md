@@ -49,14 +49,21 @@ npm run dev
 ```
 task_management/
 ├── docs/
-│   └── requirements.md  # 要件定義書
-├── backend/            # Express API サーバー
+│   ├── requirements.md  # 要件定義書
+│   └── needs-analysis.md
+├── backend/            # Express API サーバー(現行)
 │   ├── server.js
 │   ├── db.js           # SQLiteスキーマ定義・初期シード
 │   ├── routes/
 │   │   ├── lists.js
 │   │   └── cards.js
 │   └── data/app.db      # SQLiteデータファイル(gitignore対象)
+├── backend-java/       # Spring Boot バックエンド(移行先・ひな形段階)
+│   ├── build.gradle
+│   ├── gradlew / gradlew.bat
+│   └── src/main/java/com/taskmanagement/backend/
+│       ├── BackendApplication.java
+│       └── HealthController.java
 └── frontend/           # React (Vite) アプリ
     └── src/
         ├── App.jsx      # 状態管理・ドラッグ&ドロップ制御
@@ -70,3 +77,20 @@ task_management/
             ├── CardModal.jsx
             └── BackgroundPicker.jsx
 ```
+
+### Java版バックエンド(移行先・ひな形段階)
+
+`docs/requirements.md`(10. 技術構成)の方針に基づき、バックエンドをJava + Spring Boot + Gradle + PostgreSQLへ段階的に移行中です。`backend-java/` はまだ最小構成(ひな形)で、既存のNode版 `backend/` を置き換えるものではありません(現時点では両方が併存し、アプリ本体はNode版で動作します)。
+
+- 必要環境: JDK 25(LTS)以上。Gradleは同梱のWrapper(`gradlew`)を使うため別途インストール不要。
+- DB: 現在はH2(インメモリ、外部インストール不要)。将来的にPostgreSQLへ切り替え予定。
+
+起動方法:
+```bash
+cd task_management/backend-java
+./gradlew.bat bootRun   # Windows。macOS/Linuxは ./gradlew bootRun
+```
+
+起動後、以下で動作確認できます(ポート8080)。
+- `GET http://localhost:8080/api/health` → `{"status":"ok"}`(既存Node版と同じ契約)
+- `GET http://localhost:8080/actuator/health` → H2への接続状況を含む詳細なヘルス情報
