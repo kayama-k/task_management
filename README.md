@@ -14,60 +14,58 @@ Task Management Project
 - ドラッグ&ドロップでカードをリスト内・リスト間で移動
 - 背景のカスタマイズ(プリセットカラー、またはローカル画像のアップロード。ウィンドウサイズに追従してフィット表示)
 
-### 技術構成
-| 層 | 技術 |
-|---|---|
-| フロントエンド | React + Vite、ドラッグ&ドロップは [@dnd-kit](https://dndkit.com/) |
-| バックエンド | Node.js + Express |
-| DB | SQLite(Node.js組み込みの `node:sqlite`。追加インストール不要) |
+> **状態**: `docs/requirements.md`(10. 技術構成)の方針に基づき、バックエンドをNode.js/ExpressからJava/Spring Bootへ移行中です。現在の `backend/` はSpring Bootの最小構成(ひな形)で、ヘルスチェック(`/api/health`)のみが実装済みです。リスト/カードのCRUD・ドラッグ&ドロップなど実際のAPIはまだ移植されていないため、**現時点では `frontend/` から `backend/` への実際のAPI呼び出しは動作しません**。上記の機能一覧は、要件定義書上の仕様および `docs/mockup.html`(プロトタイプ、バックエンド不要)で確認できます。
 
-`node:sqlite` を使うため **Node.js 22.5 以上**が必要です(Node 24系で動作確認済み)。
+### 技術構成
+| 層 | 技術 | 状態 |
+|---|---|---|
+| フロントエンド | React + Vite、ドラッグ&ドロップは [@dnd-kit](https://dndkit.com/) | 稼働中(JavaScript。TypeScript+Tailwind CSSへの移行は未着手) |
+| バックエンド | Java + Spring Boot + Gradle | ひな形段階(ヘルスチェックのみ) |
+| DB | H2(インメモリ) | 暫定。将来PostgreSQLへ切り替え予定 |
 
 ### セットアップと起動
 
-ターミナルを2つ開いて、それぞれで以下を実行してください。
-
+**バックエンド**(必要環境: JDK 25以上。Gradleは同梱のWrapperを使うため別途インストール不要)
 ```bash
-# 1. バックエンド (http://localhost:3001)
 cd task_management/backend
-npm install
-npm run dev
+./gradlew.bat bootRun   # Windows。macOS/Linuxは ./gradlew bootRun
+```
+起動後、以下で動作確認できます(ポート8080)。
+- `GET http://localhost:8080/api/health` → `{"status":"ok"}`
+- `GET http://localhost:8080/actuator/health` → H2への接続状況を含む詳細なヘルス情報
 
-# 2. フロントエンド (http://localhost:5173)
+**フロントエンド**(必要環境: Node.js。動作確認はNode 24系)
+```bash
 cd task_management/frontend
 npm install
 npm run dev
 ```
+ブラウザで http://localhost:5173 を開くとボードが表示されますが、前述の通りバックエンドAPIが未実装のため、リスト/カードの読み込みなどは動作しません。
 
-ブラウザで http://localhost:5173 を開くとボードが表示されます。
+**プロトタイプ**(バックエンド不要ですぐ試せる版): [docs/mockup.html](docs/mockup.html) をブラウザで直接開いてください。データはブラウザの `localStorage` に保存されます。
 
 ### データの保存先
-- タスクデータ: `backend/data/app.db`(SQLite。初回起動時に自動作成、`To Do` / `In Progress` / `Done` の3リストを初期データとして投入)
+- タスクデータ: バックエンドのH2インメモリDB(アプリ終了時に消える。将来PostgreSQLへ移行予定)
 - 背景設定(色・画像): ブラウザのローカルストレージ(サーバー側DBには保存されません)
+- プロトタイプ(`docs/mockup.html`)のデータ: ブラウザの `localStorage`(上記アプリ本体とは別管理)
 
 ### ディレクトリ構成
 ```
 task_management/
 ├── docs/
-│   ├── requirements.md  # 要件定義書
-│   └── needs-analysis.md
-├── backend/            # Express API サーバー(現行)
-│   ├── server.js
-│   ├── db.js           # SQLiteスキーマ定義・初期シード
-│   ├── routes/
-│   │   ├── lists.js
-│   │   └── cards.js
-│   └── data/app.db      # SQLiteデータファイル(gitignore対象)
-├── backend-java/       # Spring Boot バックエンド(移行先・ひな形段階)
+│   ├── requirements.md   # 要件定義書
+│   ├── needs-analysis.md # 要求分析書
+│   └── mockup.html       # 動作するプロトタイプ(バックエンド不要)
+├── backend/             # Spring Boot バックエンド(ひな形段階)
 │   ├── build.gradle
 │   ├── gradlew / gradlew.bat
 │   └── src/main/java/com/taskmanagement/backend/
 │       ├── BackendApplication.java
 │       └── HealthController.java
-└── frontend/           # React (Vite) アプリ
+└── frontend/            # React (Vite) アプリ
     └── src/
-        ├── App.jsx      # 状態管理・ドラッグ&ドロップ制御
-        ├── api.js       # バックエンドAPIクライアント
+        ├── App.jsx       # 状態管理・ドラッグ&ドロップ制御
+        ├── api.js        # バックエンドAPIクライアント
         └── components/
             ├── Board.jsx
             ├── List.jsx
@@ -77,20 +75,3 @@ task_management/
             ├── CardModal.jsx
             └── BackgroundPicker.jsx
 ```
-
-### Java版バックエンド(移行先・ひな形段階)
-
-`docs/requirements.md`(10. 技術構成)の方針に基づき、バックエンドをJava + Spring Boot + Gradle + PostgreSQLへ段階的に移行中です。`backend-java/` はまだ最小構成(ひな形)で、既存のNode版 `backend/` を置き換えるものではありません(現時点では両方が併存し、アプリ本体はNode版で動作します)。
-
-- 必要環境: JDK 25(LTS)以上。Gradleは同梱のWrapper(`gradlew`)を使うため別途インストール不要。
-- DB: 現在はH2(インメモリ、外部インストール不要)。将来的にPostgreSQLへ切り替え予定。
-
-起動方法:
-```bash
-cd task_management/backend-java
-./gradlew.bat bootRun   # Windows。macOS/Linuxは ./gradlew bootRun
-```
-
-起動後、以下で動作確認できます(ポート8080)。
-- `GET http://localhost:8080/api/health` → `{"status":"ok"}`(既存Node版と同じ契約)
-- `GET http://localhost:8080/actuator/health` → H2への接続状況を含む詳細なヘルス情報
