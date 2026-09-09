@@ -18,13 +18,10 @@ repositories {
 }
 
 dependencies {
-	// No H2/JPA/datasource here on purpose: the real target DB (PostgreSQL,
-	// per docs/requirements.md 10.3) isn't set up yet, and H2 was only a
-	// stand-in that made /actuator/health falsely report "UP". A custom
-	// HealthIndicator (DatabaseHealthIndicator) now reports that honestly.
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	// Minimal on purpose: just enough to serve GET /. No H2/JPA/datasource
+	// (the real target DB, PostgreSQL per docs/requirements.md 10.3, isn't
+	// set up yet) and no Actuator (not needed at this stage).
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

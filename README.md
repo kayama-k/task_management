@@ -14,14 +14,14 @@ Task Management Project
 - ドラッグ&ドロップでカードをリスト内・リスト間で移動
 - 背景のカスタマイズ(プリセットカラー、またはローカル画像のアップロード。ウィンドウサイズに追従してフィット表示)
 
-> **状態**: `docs/requirements.md`(10. 技術構成)の方針に基づき、バックエンドをNode.js/ExpressからJava/Spring Bootへ移行中です。現在の `backend/` はSpring Bootの最小構成(ひな形)で、ヘルスチェック(`/api/health`)のみが実装済みです。リスト/カードのCRUD・ドラッグ&ドロップなど実際のAPIはまだ移植されていないため、**現時点では `frontend/` から `backend/` への実際のAPI呼び出しは動作しません**。上記の機能一覧は、要件定義書上の仕様および `docs/mockup.html`(プロトタイプ、バックエンド不要)で確認できます。
+> **状態**: `docs/requirements.md`(10. 技術構成)の方針に基づき、バックエンドをNode.js/ExpressからJava/Spring Bootへ移行中です。現在の `backend/` はSpring Bootの最小構成(ひな形)で、ルート(`GET /`)の起動確認のみが実装済みです。リスト/カードのCRUD・ドラッグ&ドロップなど実際のAPIはまだ移植されていないため、**現時点では `frontend/` から `backend/` への実際のAPI呼び出しは動作しません**。上記の機能一覧は、要件定義書上の仕様および `docs/mockup.html`(プロトタイプ、バックエンド不要)で確認できます。
 
 ### 技術構成
 | 層 | 技術 | 状態 |
 |---|---|---|
 | フロントエンド | React + Vite、ドラッグ&ドロップは [@dnd-kit](https://dndkit.com/) | 稼働中(JavaScript。TypeScript+Tailwind CSSへの移行は未着手) |
-| バックエンド | Java + Spring Boot + Gradle | ひな形段階(ヘルスチェックのみ) |
-| DB | 未接続(PostgreSQL予定) | 未着手。`/actuator/health` は正直に `DOWN` を返す |
+| バックエンド | Java + Spring Boot + Gradle | ひな形段階(起動確認のみ) |
+| DB | 未接続(PostgreSQL予定) | 未着手 |
 
 ### セットアップと起動
 
@@ -30,9 +30,7 @@ Task Management Project
 cd task_management/backend
 ./gradlew.bat bootRun   # Windows。macOS/Linuxは ./gradlew bootRun
 ```
-起動後、以下で動作確認できます(ポート8080)。
-- `GET http://localhost:8080/api/health` → `{"status":"ok"}`(アプリ自体の起動確認)
-- `GET http://localhost:8080/actuator/health` → `{"status":"DOWN", ...}`(HTTP 503)。DB(PostgreSQL)がまだ未接続であることを `database` コンポーネントが正直に示す
+起動後、`GET http://localhost:8080/` → `{"status":"ok"}` で起動確認できます(ポート8080)。
 
 **フロントエンド**(必要環境: Node.js。動作確認はNode 24系)
 ```bash
@@ -61,8 +59,7 @@ task_management/
 │   ├── gradlew / gradlew.bat
 │   └── src/main/java/com/taskmanagement/backend/
 │       ├── BackendApplication.java
-│       ├── HealthController.java
-│       └── DatabaseHealthIndicator.java  # DB未接続を正直にDOWN表示
+│       └── RootController.java  # GET / の起動確認のみ
 └── frontend/            # React (Vite) アプリ
     └── src/
         ├── App.jsx       # 状態管理・ドラッグ&ドロップ制御
