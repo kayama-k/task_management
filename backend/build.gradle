@@ -18,10 +18,17 @@ repositories {
 }
 
 dependencies {
-	// Minimal on purpose: just enough to serve GET /. No H2/JPA/datasource
-	// (the real target DB, PostgreSQL per docs/requirements.md 10.3, isn't
-	// set up yet) and no Actuator (not needed at this stage).
+	// Still no endpoints and no Actuator (not needed at this stage) — see
+	// docs/requirements.md decision history. This step adds just enough to
+	// connect to PostgreSQL (via Docker Compose, compose.yaml) over plain
+	// JDBC. No JPA/entities yet: connectivity only, no tables.
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	runtimeOnly 'org.postgresql:postgresql'
+	// Auto-starts/stops compose.yaml's postgres service alongside the app
+	// (only active for local runs, e.g. `bootRun` — not packaged into the
+	// production jar).
+	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

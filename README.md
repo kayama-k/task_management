@@ -14,23 +14,23 @@ Task Management Project
 - ドラッグ&ドロップでカードをリスト内・リスト間で移動
 - 背景のカスタマイズ(プリセットカラー、またはローカル画像のアップロード。ウィンドウサイズに追従してフィット表示)
 
-> **状態**: `docs/requirements.md`(10. 技術構成)の方針に基づき、バックエンドをNode.js/ExpressからJava/Spring Bootへ移行中です。現在の `backend/` はSpring Bootの最小構成(ひな形)で、独自のエンドポイントは何も実装していません(`GET /` を含め、どのパスも404を返します)。リスト/カードのCRUD・ドラッグ&ドロップなど実際のAPIはまだ移植されていないため、**現時点では `frontend/` から `backend/` への実際のAPI呼び出しは動作しません**。上記の機能一覧は、要件定義書上の仕様および `docs/mockup.html`(プロトタイプ、バックエンド不要)で確認できます。
+> **状態**: `docs/requirements.md`(10. 技術構成)の方針に基づき、バックエンドをNode.js/ExpressからJava/Spring Bootへ移行中です。現在の `backend/` はSpring Bootの最小構成(ひな形)で、独自のエンドポイントは何も実装していません(`GET /` を含め、どのパスも404を返します)。PostgreSQL(Docker Compose経由)への接続設定は追加済みで、アプリ起動時に接続確認できていますが、`lists`/`cards`のテーブル・JPAエンティティはまだ作成していません。リスト/カードのCRUD・ドラッグ&ドロップなど実際のAPIはまだ移植されていないため、**現時点では `frontend/` から `backend/` への実際のAPI呼び出しは動作しません**。上記の機能一覧は、要件定義書上の仕様および `docs/mockup.html`(プロトタイプ、バックエンド不要)で確認できます。
 
 ### 技術構成
 | 層 | 技術 | 状態 |
 |---|---|---|
 | フロントエンド | React + Vite、ドラッグ&ドロップは [@dnd-kit](https://dndkit.com/) | 稼働中(JavaScript。TypeScript+Tailwind CSSへの移行は未着手) |
 | バックエンド | Java + Spring Boot + Gradle | ひな形段階(エンドポイント未実装) |
-| DB | 未接続(PostgreSQL予定) | 未着手 |
+| DB | PostgreSQL(Docker) | 接続確認済み(テーブル・JPAエンティティは未作成) |
 
 ### セットアップと起動
 
-**バックエンド**(必要環境: JDK 25以上。Gradleは同梱のWrapperを使うため別途インストール不要)
+**バックエンド**(必要環境: JDK 25以上。Gradleは同梱のWrapperを使うため別途インストール不要。PostgreSQLはDockerで自動起動するため、事前にDocker Desktop等を起動しておいてください)
 ```bash
 cd task_management/backend
 ./gradlew.bat bootRun   # Windows。macOS/Linuxは ./gradlew bootRun
 ```
-起動後、プロセスがポート8080で待ち受けていることは確認できますが、エンドポイントは未実装のため `GET http://localhost:8080/` を含めどのパスにアクセスしても404が返ります(想定通り)。
+Spring BootのDocker Compose連携(`compose.yaml`)により、`bootRun` 実行時にPostgreSQLコンテナが自動的に起動し、アプリ終了時に停止します(Docker側で明示的に用意する必要はありません)。起動後、プロセスがポート8080で待ち受けていることは確認できますが、エンドポイントは未実装のため `GET http://localhost:8080/` を含めどのパスにアクセスしても404が返ります(想定通り)。
 
 **フロントエンド**(必要環境: Node.js。動作確認はNode 24系)
 ```bash
@@ -43,7 +43,7 @@ npm run dev
 **プロトタイプ**(バックエンド不要ですぐ試せる版): [docs/mockup.html](docs/mockup.html) をブラウザで直接開いてください。データはブラウザの `localStorage` に保存されます。
 
 ### データの保存先
-- タスクデータ: 未着手。データベース(PostgreSQL予定)自体が未接続のため、現時点では何も保存されません
+- タスクデータ: 未着手。DB(PostgreSQL)自体への接続は確認済みですが、`lists`/`cards`のテーブルがまだ存在しないため、現時点では何も保存されません
 - 背景設定(色・画像): ブラウザのローカルストレージ(サーバー側DBには保存されません)
 - プロトタイプ(`docs/mockup.html`)のデータ: ブラウザの `localStorage`(上記アプリ本体とは別管理)
 
@@ -56,6 +56,7 @@ task_management/
 │   └── mockup.html       # 動作するプロトタイプ(バックエンド不要)
 ├── backend/             # Spring Boot バックエンド(ひな形段階)
 │   ├── build.gradle
+│   ├── compose.yaml     # PostgreSQL(Docker Compose、bootRunで自動起動)
 │   ├── gradlew / gradlew.bat
 │   └── src/main/java/com/taskmanagement/backend/
 │       └── BackendApplication.java  # エンドポイントは未実装

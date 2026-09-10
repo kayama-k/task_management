@@ -258,7 +258,7 @@ cards
 
 ## 10. 技術構成(技術選定)
 
-> **注記**: 以下は今後移行予定の技術スタックである。バックエンドは `backend/` をSpring Boot版に一本化済み(旧Node.js版は削除)だが、まだ最小構成(ひな形、エンドポイント未実装)の段階。DB(PostgreSQL)は未接続。フロントエンド(`frontend/`)はまだ移行前(JavaScript、素のCSS)のまま。詳細は12.検討・変更の経緯を参照。
+> **注記**: 以下は今後移行予定の技術スタックである。バックエンドは `backend/` をSpring Boot版に一本化済み(旧Node.js版は削除)だが、まだ最小構成(ひな形、エンドポイント未実装)の段階。DB(PostgreSQL)はDocker Compose経由で接続確認済み(`lists`/`cards`のテーブル・JPAエンティティは未作成)。フロントエンド(`frontend/`)はまだ移行前(JavaScript、素のCSS)のまま。詳細は12.検討・変更の経緯を参照。
 
 ### 10.1 フロントエンド
 
@@ -285,6 +285,9 @@ cards
 | 項目 | 技術 |
 |---|---|
 | RDBMS | PostgreSQL |
+| 実行環境(開発時) | Docker Compose(`backend/compose.yaml`。Spring Bootのdocker-compose連携により `bootRun` 時に自動起動・停止) |
+
+> 接続確認(`spring-boot-starter-jdbc` + PostgreSQL JDBCドライバでの接続確認)は完了しているが、`lists`/`cards`のテーブル・JPAエンティティは未作成(次段階)。
 
 ### 10.4 開発ツール
 
@@ -337,3 +340,4 @@ cards
 22. 「この段階でDBの代替(H2)は不要。むしろ未整備であることが正しく分かるよう、あえて異常ステータスにしてほしい」との方針を受け、H2・Spring Data JPAへの依存を撤去した。代わりに自作の `DatabaseHealthIndicator`(`org.springframework.boot.health.contributor.HealthIndicator` を実装。Spring Boot 4系ではヘルス関連APIが `spring-boot-actuator` から `spring-boot-health` モジュール・`org.springframework.boot.health.contributor` パッケージへ移動している点に注意)を追加し、DB未接続を `database: DOWN` として正直に報告するようにした。`GET /actuator/health` は総合ステータス `DOWN`(HTTP 503)を返す。`GET /api/health`(アプリ自体の起動確認)は引き続き `{"status":"ok"}` のまま。
 23. 「`/api/health` と `/actuator/health` はどちらも必須ではない。今必要なのはルート(`http://localhost:8080/`)のみ」との方針を受け、両エンドポイントおよびActuator依存(`DatabaseHealthIndicator` 含む)を削除。`GET /`(`RootController`)のみで `{"status":"ok"}` を返す、最小構成に戻した。
 24. 「ルート(`http://localhost:8080/`)で404が出るようにしたい」との指示を受け、`RootController` を削除。現在の `backend/` にはエンドポイントが一切なく、どのパスも404を返す(プロセス自体はポート8080で起動している)状態にした。
+25. 「PostgreSQLの接続設定を追加し、バックエンド経由でDBを動かしたい。DB環境がまだないのでDockerを設定してほしい」との依頼を受け、まず接続確認のみ(テーブル・JPAエンティティ作成は次段階)の範囲で対応した。`backend/compose.yaml` を新規作成し、`postgres:17-alpine` イメージ(DB名・ユーザー・パスワードはいずれも `taskmanagement`)を定義。`build.gradle` に `spring-boot-starter-jdbc`・PostgreSQL JDBCドライバ・`spring-boot-docker-compose`(開発時のみ、`bootRun` 時に `compose.yaml` を自動検知してコンテナの起動・停止を面倒みる)を追加し、`application.properties` に対応する接続設定(`spring.datasource.*`)を追加。エンドポイントは引き続き一切追加せず(確認用の専用APIも作らない方針)、`./gradlew bootRun` の起動ログ(HikariCPの接続プール初期化・エラーなしでの起動)と、`docker exec` 経由の `psql -c "SELECT 1;"` によるアプリを介さない直接疎通確認の両方でPostgreSQLへの接続を確認した。
