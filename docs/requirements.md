@@ -177,48 +177,9 @@ flowchart TD
 
 ## 8. データモデル
 
-### 8.1 ER図
+データベースの詳細設計(ER図・テーブル定義・JPAエンティティとの対応)は、要件定義書には含めず独立した設計書にまとめている。[database-design.md](database-design.md)(データベース設計書)を参照。
 
-`lists`(リスト)1件に対して `cards`(カード)は0件以上(1対多)。カードは必ずいずれか1つのリストに属し、リストが削除されると所属するカードもまとめて削除される(`ON DELETE CASCADE`)。
-
-```mermaid
-erDiagram
-    LISTS ||--o{ CARDS : "1つのリストは0件以上のカードを持つ"
-
-    LISTS {
-        integer id PK
-        text title
-        integer position
-    }
-
-    CARDS {
-        integer id PK
-        integer list_id FK
-        text title
-        text description
-        integer position
-        text due_at "任意"
-        text created_at
-    }
-```
-
-### 8.2 テーブル定義
-
-```
-lists
-  id            INTEGER PRIMARY KEY
-  title         TEXT NOT NULL
-  position      INTEGER NOT NULL
-
-cards
-  id            INTEGER PRIMARY KEY
-  list_id       INTEGER NOT NULL (FK -> lists.id, ON DELETE CASCADE)
-  title         TEXT NOT NULL
-  description   TEXT NOT NULL DEFAULT ''
-  position      INTEGER NOT NULL
-  due_at        TEXT NULL        -- 予定日時(任意、ISO日時文字列)
-  created_at    TEXT NOT NULL
-```
+概要: `lists`(リスト)1件に対して `cards`(カード)は0件以上(1対多)。カードは必ずいずれか1つのリストに属し、リストが削除されると所属するカードもまとめて削除される。
 
 ## 9. バックエンド仕様(APIとその動作)
 
@@ -258,7 +219,7 @@ cards
 
 ## 10. 技術構成(技術選定)
 
-> **注記**: 以下は今後移行予定の技術スタックである。バックエンドは `backend/` をSpring Boot版に一本化済み(旧Node.js版は削除)だが、まだ最小構成(ひな形、エンドポイント未実装)の段階。DB(PostgreSQL)はDocker Compose経由で接続確認済み(`lists`/`cards`のテーブル・JPAエンティティは未作成)。フロントエンド(`frontend/`)はまだ移行前(JavaScript、素のCSS)のまま。詳細は12.検討・変更の経緯を参照。
+> **注記**: 以下は今後移行予定の技術スタックである。バックエンドは `backend/` をSpring Boot版に一本化済み(旧Node.js版は削除)だが、まだ最小構成(ひな形、REST APIエンドポイント未実装)の段階。DB(PostgreSQL)はDocker Compose経由で接続確認済みで、`lists`/`cards`のテーブル・JPAエンティティも作成済み(詳細は[database-design.md](database-design.md))。CRUD APIの実装はまだ。フロントエンド(`frontend/`)はまだ移行前(JavaScript、素のCSS)のまま。詳細は12.検討・変更の経緯を参照。
 
 ### 10.1 フロントエンド
 
@@ -287,7 +248,7 @@ cards
 | RDBMS | PostgreSQL |
 | 実行環境(開発時) | Docker Compose(`backend/compose.yaml`。Spring Bootのdocker-compose連携により `bootRun` 時に自動起動・停止) |
 
-> 接続確認(`spring-boot-starter-jdbc` + PostgreSQL JDBCドライバでの接続確認)は完了しているが、`lists`/`cards`のテーブル・JPAエンティティは未作成(次段階)。
+> Spring Data JPAでの接続確認、および `lists`/`cards` のテーブル・JPAエンティティ作成は完了している。詳細は[database-design.md](database-design.md)(データベース設計書)を参照。CRUD APIエンドポイントの実装はまだ(次段階)。
 
 ### 10.4 開発ツール
 
@@ -341,3 +302,4 @@ cards
 23. 「`/api/health` と `/actuator/health` はどちらも必須ではない。今必要なのはルート(`http://localhost:8080/`)のみ」との方針を受け、両エンドポイントおよびActuator依存(`DatabaseHealthIndicator` 含む)を削除。`GET /`(`RootController`)のみで `{"status":"ok"}` を返す、最小構成に戻した。
 24. 「ルート(`http://localhost:8080/`)で404が出るようにしたい」との指示を受け、`RootController` を削除。現在の `backend/` にはエンドポイントが一切なく、どのパスも404を返す(プロセス自体はポート8080で起動している)状態にした。
 25. 「PostgreSQLの接続設定を追加し、バックエンド経由でDBを動かしたい。DB環境がまだないのでDockerを設定してほしい」との依頼を受け、まず接続確認のみ(テーブル・JPAエンティティ作成は次段階)の範囲で対応した。`backend/compose.yaml` を新規作成し、`postgres:17-alpine` イメージ(DB名・ユーザー・パスワードはいずれも `taskmanagement`)を定義。`build.gradle` に `spring-boot-starter-jdbc`・PostgreSQL JDBCドライバ・`spring-boot-docker-compose`(開発時のみ、`bootRun` 時に `compose.yaml` を自動検知してコンテナの起動・停止を面倒みる)を追加し、`application.properties` に対応する接続設定(`spring.datasource.*`)を追加。エンドポイントは引き続き一切追加せず(確認用の専用APIも作らない方針)、`./gradlew bootRun` の起動ログ(HikariCPの接続プール初期化・エラーなしでの起動)と、`docker exec` 経由の `psql -c "SELECT 1;"` によるアプリを介さない直接疎通確認の両方でPostgreSQLへの接続を確認した。
+26. 前項に続き、`lists`/`cards` のテーブル・JPAエンティティを作成する段階に進んだ。作成方式は「JPA自動生成」(`spring-boot-starter-data-jpa` を追加し `@Entity` クラスから `spring.jpa.hibernate.ddl-auto=update` でテーブルを自動生成)を選択し、スコープはテーブル・エンティティ作成のみ(CRUD APIの実装は次段階)とした。`TaskList`・`Card` エンティティ(`backend/src/main/java/.../entity/`)を作成し、`docker exec` 経由の `psql \d` でテーブル定義(型・制約・外部キーの `ON DELETE CASCADE`)を確認した。また、「DB設計は要件定義書にまとめず独立した設計書にしてほしい」との方針を受け、[database-design.md](database-design.md)(データベース設計書)を新設し、要件定義書「8. データモデル」の詳細記載(ER図・テーブル定義)はそちらに移動、要件定義書側は概要と参照リンクのみに簡略化した。
