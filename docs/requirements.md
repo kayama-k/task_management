@@ -88,6 +88,8 @@ Trello を参考にした、個人利用向けのタスク管理Webアプリケ�
 
 実際に操作できるプロトタイプ(HTML/CSS/JavaScript、単一ファイル、データはブラウザのlocalStorageに保存)を作成済み: [docs/mockup.html](mockup.html)。リスト/カードの追加・編集・削除・ドラッグ&ドロップ・背景カスタマイズなど、要件定義書の機能要件と同等の挙動を試せる(バックエンドは使用しない簡易版)。
 
+配色・タイポグラフィ・余白などの見た目(スクリーンデザイン)の詳細は、要件定義書には含めず独立した資料にまとめている。[screen-design.md](screen-design.md)(スクリーンデザイン)を参照。
+
 ## 7. ユースケースと操作フロー
 
 アクターは「利用者(開発者本人)」の1人のみ(2. 対象ユーザー・用途を参照)。
@@ -261,3 +263,4 @@ flowchart TD
 25. 「PostgreSQLの接続設定を追加し、バックエンド経由でDBを動かしたい。DB環境がまだないのでDockerを設定してほしい」との依頼を受け、まず接続確認のみ(テーブル・JPAエンティティ作成は次段階)の範囲で対応した。`backend/compose.yaml` を新規作成し、`postgres:17-alpine` イメージ(DB名・ユーザー・パスワードはいずれも `taskmanagement`)を定義。`build.gradle` に `spring-boot-starter-jdbc`・PostgreSQL JDBCドライバ・`spring-boot-docker-compose`(開発時のみ、`bootRun` 時に `compose.yaml` を自動検知してコンテナの起動・停止を面倒みる)を追加し、`application.properties` に対応する接続設定(`spring.datasource.*`)を追加。エンドポイントは引き続き一切追加せず(確認用の専用APIも作らない方針)、`./gradlew bootRun` の起動ログ(HikariCPの接続プール初期化・エラーなしでの起動)と、`docker exec` 経由の `psql -c "SELECT 1;"` によるアプリを介さない直接疎通確認の両方でPostgreSQLへの接続を確認した。
 26. 前項に続き、`lists`/`cards` のテーブル・JPAエンティティを作成する段階に進んだ。作成方式は「JPA自動生成」(`spring-boot-starter-data-jpa` を追加し `@Entity` クラスから `spring.jpa.hibernate.ddl-auto=update` でテーブルを自動生成)を選択し、スコープはテーブル・エンティティ作成のみ(CRUD APIの実装は次段階)とした。`TaskList`・`Card` エンティティ(`backend/src/main/java/.../entity/`)を作成し、`docker exec` 経由の `psql \d` でテーブル定義(型・制約・外部キーの `ON DELETE CASCADE`)を確認した。また、「DB設計は要件定義書にまとめず独立した設計書にしてほしい」との方針を受け、[database-design.md](database-design.md)(データベース設計書)を新設し、要件定義書「8. データモデル」の詳細記載(ER図・テーブル定義)はそちらに移動、要件定義書側は概要と参照リンクのみに簡略化した。
 27. 「技術スタックについてもまとめたMD資料を独立させたい」との依頼を受け、[tech-stack.md](tech-stack.md)(技術構成書)を新設した。要件定義書「10. 技術構成」にあったフロントエンド/バックエンド/データベース/開発ツールの採用技術一覧、および移行前後の変更点の表はそちらに移動し、要件定義書側は概要と参照リンクのみに簡略化した(8.データモデルをdatabase-design.mdに独立させたのと同じ方針)。
+28. 「画面要件はスクリーンデザインのことか」との質問を受け、両者は別物である旨を回答(画面要件=どの画面に何を配置し何ができるかという仕様、スクリーンデザイン=配色・タイポグラフィ等の実際の見た目)。続けて「スクリーンデザインの独立したMD資料も欲しい」との依頼を受け、[screen-design.md](screen-design.md)を新設した。プロトタイプ(`docs/mockup.html`)の実際のCSS(配色・フォント・余白・角丸・コンポーネントごとのスタイル)を正として整理し、要件定義書「6. 画面要件」からは参照リンクのみを追加した(機能仕様レベルの記載自体は変更なし)。
