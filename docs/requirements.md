@@ -219,52 +219,9 @@ flowchart TD
 
 ## 10. 技術構成(技術選定)
 
-> **注記**: 以下は今後移行予定の技術スタックである。バックエンドは `backend/` をSpring Boot版に一本化済み(旧Node.js版は削除)だが、まだ最小構成(ひな形、REST APIエンドポイント未実装)の段階。DB(PostgreSQL)はDocker Compose経由で接続確認済みで、`lists`/`cards`のテーブル・JPAエンティティも作成済み(詳細は[database-design.md](database-design.md))。CRUD APIの実装はまだ。フロントエンド(`frontend/`)はまだ移行前(JavaScript、素のCSS)のまま。詳細は12.検討・変更の経緯を参照。
+技術スタックの詳細(採用技術一覧・選定理由・移行前後の変更点)は、要件定義書には含めず独立した資料にまとめている。[tech-stack.md](tech-stack.md)(技術構成書)を参照。
 
-### 10.1 フロントエンド
-
-| 項目 | 技術 |
-|---|---|
-| フレームワーク | React |
-| 言語 | TypeScript |
-| ビルドツール | Vite |
-| ドラッグ&ドロップ | dnd-kit |
-| スタイリング | Tailwind CSS |
-| パッケージ管理 | npm |
-
-### 10.2 バックエンド
-
-| 項目 | 技術 |
-|---|---|
-| 言語 | Java |
-| フレームワーク | Spring Boot |
-| ビルドツール | Gradle |
-| API形式 | REST API |
-
-### 10.3 データベース
-
-| 項目 | 技術 |
-|---|---|
-| RDBMS | PostgreSQL |
-| 実行環境(開発時) | Docker Compose(`backend/compose.yaml`。Spring Bootのdocker-compose連携により `bootRun` 時に自動起動・停止) |
-
-> Spring Data JPAでの接続確認、および `lists`/`cards` のテーブル・JPAエンティティ作成は完了している。詳細は[database-design.md](database-design.md)(データベース設計書)を参照。CRUD APIエンドポイントの実装はまだ(次段階)。
-
-### 10.4 開発ツール
-
-| 項目 | 技術 |
-|---|---|
-| バージョン管理 | Git + GitHub |
-
-### 10.5 移行前(現行実装)からの変更点
-
-| 項目 | 移行前(現行実装) | 移行後(採用) |
-|---|---|---|
-| フロントエンド言語 | JavaScript | TypeScript |
-| スタイリング | 素のCSS | Tailwind CSS |
-| バックエンド | Node.js + Express | Java + Spring Boot(Gradle) |
-| データベース | SQLite(`node:sqlite`) | PostgreSQL |
-| ドラッグ&ドロップ | `@dnd-kit`(変更なし) | `dnd-kit`(変更なし) |
+概要: フロントエンドはReact + TypeScript + Vite(dnd-kit、Tailwind CSS)、バックエンドはJava + Spring Boot(Gradle、REST API)、データベースはPostgreSQLへ移行中。現状はバックエンドがひな形段階(REST APIエンドポイント未実装)で、DB接続・テーブル作成までは完了している(詳細は[database-design.md](database-design.md))。フロントエンドはまだ移行前(JavaScript、素のCSS)のまま。詳細は12.検討・変更の経緯を参照。
 
 ## 11. スコープ外(今回対応しないこと)
 
@@ -303,3 +260,4 @@ flowchart TD
 24. 「ルート(`http://localhost:8080/`)で404が出るようにしたい」との指示を受け、`RootController` を削除。現在の `backend/` にはエンドポイントが一切なく、どのパスも404を返す(プロセス自体はポート8080で起動している)状態にした。
 25. 「PostgreSQLの接続設定を追加し、バックエンド経由でDBを動かしたい。DB環境がまだないのでDockerを設定してほしい」との依頼を受け、まず接続確認のみ(テーブル・JPAエンティティ作成は次段階)の範囲で対応した。`backend/compose.yaml` を新規作成し、`postgres:17-alpine` イメージ(DB名・ユーザー・パスワードはいずれも `taskmanagement`)を定義。`build.gradle` に `spring-boot-starter-jdbc`・PostgreSQL JDBCドライバ・`spring-boot-docker-compose`(開発時のみ、`bootRun` 時に `compose.yaml` を自動検知してコンテナの起動・停止を面倒みる)を追加し、`application.properties` に対応する接続設定(`spring.datasource.*`)を追加。エンドポイントは引き続き一切追加せず(確認用の専用APIも作らない方針)、`./gradlew bootRun` の起動ログ(HikariCPの接続プール初期化・エラーなしでの起動)と、`docker exec` 経由の `psql -c "SELECT 1;"` によるアプリを介さない直接疎通確認の両方でPostgreSQLへの接続を確認した。
 26. 前項に続き、`lists`/`cards` のテーブル・JPAエンティティを作成する段階に進んだ。作成方式は「JPA自動生成」(`spring-boot-starter-data-jpa` を追加し `@Entity` クラスから `spring.jpa.hibernate.ddl-auto=update` でテーブルを自動生成)を選択し、スコープはテーブル・エンティティ作成のみ(CRUD APIの実装は次段階)とした。`TaskList`・`Card` エンティティ(`backend/src/main/java/.../entity/`)を作成し、`docker exec` 経由の `psql \d` でテーブル定義(型・制約・外部キーの `ON DELETE CASCADE`)を確認した。また、「DB設計は要件定義書にまとめず独立した設計書にしてほしい」との方針を受け、[database-design.md](database-design.md)(データベース設計書)を新設し、要件定義書「8. データモデル」の詳細記載(ER図・テーブル定義)はそちらに移動、要件定義書側は概要と参照リンクのみに簡略化した。
+27. 「技術スタックについてもまとめたMD資料を独立させたい」との依頼を受け、[tech-stack.md](tech-stack.md)(技術構成書)を新設した。要件定義書「10. 技術構成」にあったフロントエンド/バックエンド/データベース/開発ツールの採用技術一覧、および移行前後の変更点の表はそちらに移動し、要件定義書側は概要と参照リンクのみに簡略化した(8.データモデルをdatabase-design.mdに独立させたのと同じ方針)。

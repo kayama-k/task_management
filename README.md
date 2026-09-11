@@ -5,7 +5,7 @@ Task Management Project
 
 デスクトップのブラウザで使う、Trello風のタスク管理Webアプリ(演習)です。
 
-詳細な要件は [docs/requirements.md](docs/requirements.md)(要件定義書)、前提となる依頼者ニーズは [docs/needs-analysis.md](docs/needs-analysis.md)(要求分析書)、データベースの詳細設計は [docs/database-design.md](docs/database-design.md)(データベース設計書)を参照してください。
+詳細な要件は [docs/requirements.md](docs/requirements.md)(要件定義書)、前提となる依頼者ニーズは [docs/needs-analysis.md](docs/needs-analysis.md)(要求分析書)、技術スタックの詳細は [docs/tech-stack.md](docs/tech-stack.md)(技術構成書)、データベースの詳細設計は [docs/database-design.md](docs/database-design.md)(データベース設計書)を参照してください。
 
 ### 機能
 - リスト(列)の作成・リネーム・削除
@@ -53,6 +53,7 @@ task_management/
 ├── docs/
 │   ├── requirements.md      # 要件定義書
 │   ├── needs-analysis.md    # 要求分析書
+│   ├── tech-stack.md        # 技術構成書
 │   ├── database-design.md   # データベース設計書
 │   └── mockup.html          # 動作するプロトタイプ(バックエンド不要)
 ├── backend/             # Spring Boot バックエンド(ひな形段階)
