@@ -13,7 +13,7 @@ Trello風タスク管理アプリ(架空案件)のデータベース設計書。
 | テーブル定義の管理方法 | Spring Data JPA(Hibernate)のエンティティクラスから自動生成(`spring.jpa.hibernate.ddl-auto=update`) |
 | DB名 / ユーザー | `taskmanagement` / `taskmanagement` |
 
-> **状態**: テーブル(`lists`・`cards`)とJPAエンティティは作成済み。CRUD APIエンドポイントの実装はまだ(次段階)。詳細は requirements.md の「12. 検討・変更の経緯」を参照。
+> **状態**: テーブル(`lists`・`cards`)とJPAエンティティは作成済み。READ系(`GET /api/lists`)のみAPIエンドポイントを実装済み、それ以外のCRUD(POST/PATCH/DELETE)は未実装(次段階)。動作確認用のテストデータは `backend/src/main/resources/data.sql` で投入している。詳細は requirements.md の「12. 検討・変更の経緯」を参照。
 
 ## 2. ER図
 

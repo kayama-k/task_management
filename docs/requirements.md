@@ -185,7 +185,7 @@ flowchart TD
 
 ## 9. バックエンド仕様(APIとその動作)
 
-> **注記**: 本章は目標とする仕様であり、現在の実装(`backend/`、Spring Boot)にはエンドポイントが一切実装されていない(9.1のいずれのパスも未実装で404を返す)。本文の記述(SQLiteのトランザクション処理など)は旧Node.js版での実装内容に基づくもので、Java版への移植時に改めて設計する。
+> **注記**: 本章は目標とする仕様であり、現在の実装(`backend/`、Spring Boot)では `GET /api/lists` のみ実装済みで、それ以外(9.1のPOST/PATCH/DELETE)は未実装で404を返す。本文の記述(SQLiteのトランザクション処理など)は旧Node.js版での実装内容に基づくもので、Java版への移植時に改めて設計する。
 
 フロントエンドはすべてのデータ操作をバックエンドのREST APIを介して行う。バックエンドはリクエストを受け取るとSQLiteに対して読み書きを行い、結果をJSONで返す。バリデーションエラーやリソース未検出などの異常系も、例外を投げっぱなしにせずJSON形式のエラーレスポンスとして返す。
 
@@ -194,7 +194,7 @@ flowchart TD
 | Method | Path | 概要 |
 |---|---|---|
 | GET | `/api/health` | ヘルスチェック(起動確認用) |
-| GET | `/api/lists` | 全リストを、所属カード込み(position順)で取得 |
+| GET | `/api/lists` | 全リストを、所属カード込み(position順)で取得 **(実装済み)** |
 | POST | `/api/lists` | リストを新規作成(末尾に追加) |
 | PATCH | `/api/lists/:id` | リスト名を変更 |
 | DELETE | `/api/lists/:id` | リストを削除(所属カードもまとめて削除) |
@@ -264,3 +264,4 @@ flowchart TD
 26. 前項に続き、`lists`/`cards` のテーブル・JPAエンティティを作成する段階に進んだ。作成方式は「JPA自動生成」(`spring-boot-starter-data-jpa` を追加し `@Entity` クラスから `spring.jpa.hibernate.ddl-auto=update` でテーブルを自動生成)を選択し、スコープはテーブル・エンティティ作成のみ(CRUD APIの実装は次段階)とした。`TaskList`・`Card` エンティティ(`backend/src/main/java/.../entity/`)を作成し、`docker exec` 経由の `psql \d` でテーブル定義(型・制約・外部キーの `ON DELETE CASCADE`)を確認した。また、「DB設計は要件定義書にまとめず独立した設計書にしてほしい」との方針を受け、[database-design.md](database-design.md)(データベース設計書)を新設し、要件定義書「8. データモデル」の詳細記載(ER図・テーブル定義)はそちらに移動、要件定義書側は概要と参照リンクのみに簡略化した。
 27. 「技術スタックについてもまとめたMD資料を独立させたい」との依頼を受け、[tech-stack.md](tech-stack.md)(技術構成書)を新設した。要件定義書「10. 技術構成」にあったフロントエンド/バックエンド/データベース/開発ツールの採用技術一覧、および移行前後の変更点の表はそちらに移動し、要件定義書側は概要と参照リンクのみに簡略化した(8.データモデルをdatabase-design.mdに独立させたのと同じ方針)。
 28. 「画面要件はスクリーンデザインのことか」との質問を受け、両者は別物である旨を回答(画面要件=どの画面に何を配置し何ができるかという仕様、スクリーンデザイン=配色・タイポグラフィ等の実際の見た目)。続けて「スクリーンデザインの独立したMD資料も欲しい」との依頼を受け、[screen-design.md](screen-design.md)を新設した。プロトタイプ(`docs/mockup.html`)の実際のCSS(配色・フォント・余白・角丸・コンポーネントごとのスタイル)を正として整理し、要件定義書「6. 画面要件」からは参照リンクのみを追加した(機能仕様レベルの記載自体は変更なし)。
+29. 「まずバックエンドのREAD側から実装したい。テストデータをPostgreSQLに投入し、検索(取得)機能を実装して、実際にAPI経由でデータが取得できることまで確認したい。画面は不要」との依頼を受け、バックエンドAPIエンドポイントとして初めて `GET /api/lists` を実装した(9.1の対象範囲はこのエンドポイントのみで合意。キーワード検索等の絞り込みは対象外)。`repository`(`TaskListRepository`)→`service`(`TaskListQueryService`、`@Transactional(readOnly = true)`でトランザクション内にてDTO変換)→`controller`(`TaskListController`)の3層構成とし、レスポンスは `TaskList`/`Card` エンティティを直接返さずDTO(record、`ListResponse`/`CardResponse`)に変換して返す(遅延ロードの `LazyInitializationException` と、`TaskList.cards`⇔`Card.list` の双方向関連による無限再帰を回避するため)。動作確認用のテストデータは `backend/src/main/resources/data.sql` で投入することとし、固定ID(lists: 1001-1004、cards: 2001-2004)への `DELETE`→`INSERT` により `./gradlew bootRun` を何度実行してもデータが重複しない構成にした(`spring.jpa.defer-datasource-initialization=true` / `spring.sql.init.mode=always` を `application.properties` に追加)。`./gradlew bootRun` 起動 → `curl http://localhost:8080/api/lists` でのレスポンス確認、再起動後の再確認(重複なし)、`docker exec` 経由の `psql` によるDB直接照合の3通りで動作確認済み。POST/PATCH/DELETEおよびキーワード検索は本項時点では未実装。
